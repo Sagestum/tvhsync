@@ -13,7 +13,7 @@ Kanalzuordnung, Konflikterkennung, Zuordnung der Timer zu TV-Browser-Sendungen) 
 Ersetzt wurde die Anbindung: Statt SVDRP spricht TVHsync mit der HTTP/JSON-API von tvheadend.
 Teile des Datenmodells stammen aus [svdrp4j](https://github.com/hampelratte/svdrp4j), ebenfalls von Henrik Niehaus.
 
-TVHsync ist kein offizielles Projekt von Lazy Bones und wird von dessen Autoren weder unterstützt noch empfohlen.
+TVHsync ist ein eigenständiges Projekt. Fragen und Fehlermeldungen zu TVHsync bitte hier stellen und nicht beim Lazy-Bones-Projekt.
 
 ## Funktionen
 

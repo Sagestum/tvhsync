@@ -5,8 +5,9 @@ manage the scheduled recordings (DVR entries) and the finished recordings of a
 tvheadend server directly from TV-Browser.
 
 TVHsync is based on the plugin Lazy Bones by Henrik Niehaus, which does the same
-for a VDR (https://github.com/hampelratte/lazybones). TVHsync is not affiliated
-with or endorsed by the Lazy Bones project.
+for a VDR (https://github.com/hampelratte/lazybones). TVHsync is a separate
+project, please report problems with TVHsync at
+https://github.com/Sagestum/tvhsync and not at the Lazy Bones project.
 
 
 Requirements
