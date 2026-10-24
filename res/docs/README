@@ -1,34 +1,31 @@
 About
 ================================================================================
-Lazy Bones is a plugin for the great EPG-software TV-Browser. With Lazy Bones 
-you can control a VDR (by Klaus Schmidinger). Lazy Bones supports the 
-programming and editing of recording timers and comes with a remote control 
-(similar to vdradmin).
+TVHsync is a plugin for the EPG software TV-Browser. With TVHsync you can
+manage the scheduled recordings (DVR entries) and the finished recordings of a
+tvheadend server directly from TV-Browser.
+
+TVHsync is based on the plugin Lazy Bones by Henrik Niehaus, which does the same
+for a VDR (https://github.com/hampelratte/lazybones). TVHsync is not affiliated
+with or endorsed by the Lazy Bones project.
 
 
 Requirements
 ================================================================================
- * Java 11 (others might work as well)
+ * Java 11 or newer
  * TV-Browser >= 4.2.3
+ * tvheadend 4.2 or newer with the HTTP API enabled (default)
 
 
 Installation / Configuration
 ================================================================================
 For the installation read the INSTALL file.
-Configuration details can be found at: 
-http://hampelratte.org/blog/?page_id=10
 
 
 License
 ================================================================================
-This software uses NachoCalendar, XStream, XPP3 and SLF4J. You can find the 
-licenses of these libraries in the license folder.
+This software uses NachoCalendar, XStream, XPP3 and SLF4J. Parts of the data
+model are taken from svdrp4j by Henrik Niehaus. You can find the licenses of
+these libraries in the license folder.
 
 The software itself is published under a BSD license. Read the LICENSE file for
 details.
-
-
-Help / Contact
-================================================================================
-Please visit http://developer.berlios.de/projects/lazybones. There you can join
-the forum, request help, request features and report bugs.

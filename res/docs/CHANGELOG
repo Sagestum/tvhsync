@@ -1,3 +1,14 @@
+TVHsync 0.1.0
+===============================================================================
+* First version of TVHsync, a port of Lazy Bones 1.7.2 to tvheadend
+* Communication with tvheadend via its HTTP/JSON API instead of SVDRP
+* Timers are linked to the EPG events of tvheadend, if possible
+* Support for DVR profiles and the priorities of tvheadend
+* Removed features, which tvheadend doesn't support: remote control,
+  screenshots, VPS, repeating timers (use autorec / timerec in tvheadend)
+
+The history of Lazy Bones follows.
+
 Lazy Bones 1.7.2
 ===============================================================================
 * Fixed bug: Timer start date selection didn't apply the new start date in all

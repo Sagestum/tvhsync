@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="LazyBones" default="run" basedir=".">
+<project name="TVHsync" default="jar" basedir=".">
 
 	<property name="build.properties" value="build.properties"/>
 	<property file="${build.properties}"/>
@@ -14,27 +14,14 @@
 	<property name="classes.dir" value="${build.dir}/classes" />
 	<property name="res.dir" value="res" />
 	<property name="doc.dir" value="${res.dir}/docs"/>
-	<property name="jar.file" value="${tvbrowser.runtime.dir}/plugins/LazyBones.jar"/>
-	<property name="svdrp.src.dir" value="../svdrp4j/src/main/java" />
+	<property name="jar.file" value="${build.dir}/TVHsync.jar"/>
 
 
 	<target name="compile">
 		<mkdir dir="${classes.dir}" />
 
 		<javac
-			source="${java.required.version}" target="${java.required.version}"
-			modulepath="${system.modules.path}"
-			srcdir="${svdrp.src.dir}" destdir="${classes.dir}" 
-			deprecation="true" debug="true" encoding="utf-8" includeantruntime="false">
-			<classpath>
-				<fileset dir="${lib.dir}">
-					<include name="*.jar" />
-				</fileset>
-			</classpath>
-		</javac>
-
-		<javac
-			source="${java.required.version}" target="${java.required.version}"
+			release="${java.required.version}"
 			srcdir="${src.dir}" destdir="${classes.dir}" deprecation="true" debug="true" encoding="utf-8" includeantruntime="false">
 			<classpath>
 				<pathelement location="${tvbrowser.runtime.dir}/tvbrowser.jar" />
@@ -48,15 +35,16 @@
 	</target>
 
 	<target name="jar" depends="compile">
-		<mkdir dir="${classes.dir}/lazybones" />
+		<mkdir dir="${classes.dir}/tvhsync" />
 		<unjar dest="${classes.dir}">
 			<fileset dir="${lib.dir}">
 				<include name="*.jar" />
 			</fileset>
 		</unjar>
-		<copy todir="${classes.dir}/lazybones">
+		<copy todir="${classes.dir}/tvhsync">
 			<fileset dir="${res.dir}/images" includes="*.png" />
 			<fileset dir="${res.dir}/images" includes="*.gif" />
+			<fileset dir="${res.dir}/images" includes="*.svg" />
 			<fileset dir="${res.dir}/language" includes="**/*.properties" />
 		</copy>
 		<copy todir="${classes.dir}">
@@ -67,35 +55,11 @@
 		</jar>
 	</target>
 
-	<!-- 
-	/opt/jdk-15.0.1/bin/java -Xms16m -Xmx1G -module-path=lib:tvbrowser.jar -Djava.library.path="/home/henni/devel/svdrp/tvbrowser/runtime/tvbrowser_linux" 
-	-splash:imgs/splash.png -Dpropertiesfile=linux.properties -m tvbrowser/tvbrowser.TVBrowser 
-	-->
-	<target name="run" depends="compile,jar" description="Run TV-Browser">
-		<java module="tvbrowser/tvbrowser.TVBrowser" dir="${tvbrowser.runtime.dir}" fork="true">
-			<jvmarg value="-Djava.util.logging.config.file=${basedir}/logging.properties"/>
-			<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=7777"/>
-			<!--<jvmarg value="-verbose:class"/>-->
-			<jvmarg value="--module-path=lib:tvbrowser.jar"/>
-			<jvmarg value="-Djava.library.path=&quot;${tvbrowser.runtime.dir}&quot;"/>
-			<jvmarg value="-Dpropertiesfile=linux.properties"/>
-			<jvmarg value="-splash:imgs/splash.png"/>
-            <jvmarg value="-XX:+IgnoreUnrecognizedVMOptions"/>
-		</java>
-	</target>
-
-	<target name="run-vdr-local" depends="compile,jar" description="Run TV-Browser configured for a local VDR">
-		<java module="tvbrowser/tvbrowser.TVBrowser" dir="${tvbrowser.runtime.dir}" fork="true">
-			<jvmarg value="-Duser.home=/home/henni/.tvbrowser-vdr-local"/>
-			<jvmarg value="-Dpropertiesfile=${tvbrowser.runtime.dir}/linux.properties"/>
-			<jvmarg value="-Djava.util.logging.config.file=${basedir}/logging.properties"/>
-			<jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=7777"/>
-			<jvmarg value="--module-path=lib:tvbrowser.jar"/>
-            <jvmarg value="-Djava.library.path=&quot;${tvbrowser.runtime.dir}&quot;"/>
-            <jvmarg value="-Dpropertiesfile=linux.properties"/>
-            <jvmarg value="-splash:imgs/splash.png"/>
-			<jvmarg value="-XX:+IgnoreUnrecognizedVMOptions"/>
-		</java>
+	<target name="install" depends="jar" description="Copy the plugin to the TV-Browser plugin directory of the current user">
+		<fail message="Define property 'plugin.install.dir' in ${build.properties}" unless="plugin.install.dir" />
+		<!-- copy and rename instead of overwriting, so that a running TV-Browser keeps reading the old jar -->
+		<copy file="${jar.file}" tofile="${plugin.install.dir}/TVHsync.jar.tmp" overwrite="true" />
+		<move file="${plugin.install.dir}/TVHsync.jar.tmp" tofile="${plugin.install.dir}/TVHsync.jar" overwrite="true" />
 	</target>
 
 	<target name="clean">
@@ -110,17 +74,17 @@
 			<fileset dir="${build.dir}" includes="*.zip"/>
 		</delete>
 
-		<copy file="${jar.file}" todir="${dist-tmp.dir}/LazyBones-${version}/"/>
-		<copy todir="${dist-tmp.dir}/LazyBones-${version}">
+		<copy file="${jar.file}" todir="${dist-tmp.dir}/TVHsync-${version}/"/>
+		<copy todir="${dist-tmp.dir}/TVHsync-${version}">
 			<fileset dir="${doc.dir}">
 			</fileset>
 		</copy>
-		<copy todir="${dist-tmp.dir}/LazyBones-${version}/license">
+		<copy todir="${dist-tmp.dir}/TVHsync-${version}/license">
 			<fileset dir="${license.dir}">
 			</fileset>
 		</copy>
 
-		<zip destfile="${build.dir}/LazyBones-${version}.zip" 
+		<zip destfile="${build.dir}/TVHsync-${version}.zip" 
 	             basedir="${dist-tmp.dir}"/>
 
 		<delete dir="${dist-tmp.dir}"/>

@@ -1,6 +1,12 @@
-Installation: Simply copy the LazyBones.jar in the plugins directory of
-TV-Browser. You can choose between the global plugin directory, which
+Installation: Copy TVHsync.jar into the plugins directory of TV-Browser and
+restart TV-Browser. You can choose between the global plugin directory, which
 resides in the TV-Browser installation directory, and your personal plugin
-directory, which should reside in your home directory:
-"~/.tvbrowser" for Linux/Unix users
-"C:\Dokumente und Einstellungen\YourUser\TV-Browser" for Windows
+directory:
+"~/.tvbrowser/<version>/plugins" for Linux/Unix users
+"~/.var/app/org.tvbrowser.TVBrowser/.config/tvbrowser/<version>/plugins" for
+the TV-Browser flatpak
+"%APPDATA%\TV-Browser\<version>\plugins" for Windows users
+
+Afterwards open the settings of TVHsync and enter the URL of your tvheadend
+server, e.g. http://192.168.1.10:9981, and assign the TV-Browser channels to
+the tvheadend channels in the "Channels" tab.

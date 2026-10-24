@@ -1,0 +1,328 @@
+/*
+ * Copyright (c) Henrik Niehaus
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the project (Lazy Bones) nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+package tvhsync.gui.components.timeline;
+
+import static tvhsync.gui.components.timeline.Timeline.PADDING;
+import static tvhsync.gui.components.timeline.Timeline.ROW_HEIGHT;
+
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.swing.JPanel;
+import javax.swing.UIManager;
+
+import tvhsync.ChannelManager;
+import tvhsync.TVHsync;
+import tvhsync.TvhTimer;
+import tvhsync.TimerManager;
+import tvhsync.TimersChangedEvent;
+import tvhsync.TimersChangedListener;
+import tvhsync.utils.Utilities;
+
+public class TimelineList extends JPanel implements TimersChangedListener {
+    private final List<TvhTimer> data = new ArrayList<>();
+    private final List<TimelineListener> listeners = new ArrayList<>();
+    private Calendar calendar = new GregorianCalendar();
+
+    private int rowCount = 0;
+
+    private Color timelineBackground;
+    private Color rowBackground;
+    private Color rowBackgroundAlt;
+    private Color lineColor;
+    private Color overlayTextColor;
+    private Color midnightLineColor;
+
+    private transient TimerManager timerManager;
+
+    public TimelineList(TimerManager timerManager) {
+        this.timerManager = timerManager;
+        setCalendar(calendar);
+        setBackground(timelineBackground);
+
+        setLayout(new TimelineLayout());
+        timerManager.addTimersChangedListener(this);
+
+		Thread repainter = new Thread(() -> {
+			while (true) {
+				try {
+					Thread.sleep(10000);
+					repaint();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			}
+		});
+		repainter.setName("TVHsync Timeline repainter");
+		repainter.start();
+    }
+
+    public int getRowCount() {
+        return rowCount;
+    }
+
+    public void addTimer(TvhTimer timer) {
+        for (int i = 0; i < data.size(); i++) {
+            TvhTimer t = data.get(i);
+            if (ChannelManager.getInstance().getChannelNumber(t) > ChannelManager.getInstance().getChannelNumber(timer)) {
+                data.add(i, timer);
+                fireTimelineChanged();
+                return;
+            }
+        }
+
+        // the channelNumber was greater than the channelNumber of the other timers
+        // -> add this timer at the end of the table
+        data.add(timer);
+        fireTimelineChanged();
+    }
+
+    public void removeTimer(TvhTimer timer) {
+        int index = data.indexOf(timer);
+        if (index >= 0) {
+            data.remove(timer);
+            fireTimelineChanged();
+        }
+    }
+
+    public void clear() {
+        data.clear();
+        fireTimelineChanged();
+    }
+
+    private void fireTimelineChanged() {
+        this.removeAll();
+        for (TvhTimer timer : data) {
+            TimelineElement te = new TimelineElement(timer, getCalendar());
+            add(te);
+        }
+
+        Set<String> channelNumbers = new HashSet<>();
+        for (TvhTimer timer : data) {
+            channelNumbers.add(timer.getChannelId());
+        }
+        rowCount = channelNumbers.size();
+
+        for (TimelineListener l : listeners) {
+            l.timelineChanged(data);
+        }
+
+        revalidate();
+        repaint();
+    }
+
+    public Calendar getCalendar() {
+        return calendar;
+    }
+
+    public void setCalendar(Calendar calendar) {
+        this.calendar = (Calendar) calendar.clone();
+        this.calendar.set(Calendar.HOUR_OF_DAY, 0);
+        this.calendar.set(Calendar.MINUTE, 0);
+        this.calendar.set(Calendar.SECOND, 0);
+        this.calendar.set(Calendar.MILLISECOND, 0);
+
+        showTimersForCurrentDate(timerManager.getTimers());
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // paint row background
+        for (int i = 0; i < getRowCount(); i++) {
+            g.setColor(i % 2 == 0 ? rowBackground : rowBackgroundAlt);
+            g.fillRect(0, i * (ROW_HEIGHT + PADDING), getWidth(), (ROW_HEIGHT + PADDING));
+        }
+
+        // paint vertical lines
+        double pixelsPerHour = (double) (getWidth() - 1) / (double) 24;
+        int startHour = Integer.parseInt(TVHsync.getProperties().getProperty("timelineStartHour"));
+        for (int i = 0; i < 25; i++) {
+            if (i == (24 - startHour)) {
+                g.setColor(midnightLineColor);
+                g.drawLine((int) (i * pixelsPerHour) + 1, 0, (int) (i * pixelsPerHour) + 1, getHeight());
+            } else {
+                g.setColor(lineColor);
+            }
+            g.drawLine((int) (i * pixelsPerHour), 0, (int) (i * pixelsPerHour), getHeight());
+        }
+
+        // paint day string around midnight to clarify on which day a timer runs
+        paintDayOverlay(g, startHour, pixelsPerHour);
+    }
+
+    private void paintDayOverlay(Graphics g, int startHour, double pixelsPerHour) {
+        // enable font anti aliasing
+        Graphics2D g2d = (Graphics2D) g;
+        // storing original anitalising flag
+        Object state = g2d.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING);
+        if (state != RenderingHints.VALUE_TEXT_ANTIALIAS_ON) {
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        }
+
+        Calendar selectedDay = getCalendar();
+        Calendar nextDay = (Calendar) getCalendar().clone();
+        nextDay.add(Calendar.DAY_OF_MONTH, 1);
+        SimpleDateFormat sdf = new SimpleDateFormat("EEEE");
+        String selectedDayName = sdf.format(selectedDay.getTime());
+        String nextDayName = sdf.format(nextDay.getTime());
+
+        double positionOfMidnight = (24 - startHour) * pixelsPerHour;
+
+        int fontSize = 24;
+        Font font = new Font("SansSerif", Font.BOLD, fontSize);
+        FontMetrics fm = g.getFontMetrics(font);
+        int selectedDayNameWidth = fm.stringWidth(selectedDayName);
+
+        g.setColor(overlayTextColor);
+        g.setFont(font);
+
+        int x = (int) (positionOfMidnight - selectedDayNameWidth - 20);
+        int y = (ROW_HEIGHT + PADDING) * getRowCount();
+        g.drawString(selectedDayName, x, y + ROW_HEIGHT);
+
+        x = (int) (positionOfMidnight + 20);
+        g.drawString(nextDayName, x, y + ROW_HEIGHT);
+
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, state);
+    }
+
+    @Override
+    protected void paintChildren(Graphics g) {
+        super.paintChildren(g);
+
+        // paint current time line
+        int startHour = Integer.parseInt(TVHsync.getProperties().getProperty("timelineStartHour"));
+        Calendar currentTime = Calendar.getInstance();
+
+        if (isOnCurrentDate(currentTime)) { // are we showing the current day ?
+            g.setColor(new Color(255, 0, 0, 128));
+            double pixelsPerMinute = (double) (getWidth() - 1) / (double) (24 * 60);
+            int minute = currentTime.get(Calendar.MINUTE);
+            int hour = currentTime.get(Calendar.HOUR_OF_DAY);
+            if (hour >= startHour) {
+                hour -= startHour;
+            } else {
+                hour += (24 - startHour);
+            }
+            int minuteOfDay = hour * 60 + minute;
+            int position = (int) (minuteOfDay * pixelsPerMinute);
+            g.drawLine(position, 0, position, getHeight());
+        }
+    }
+
+    private boolean isOnCurrentDate(Calendar time) {
+        int startHour = Integer.parseInt(TVHsync.getProperties().getProperty("timelineStartHour"));
+        Calendar selectedDayAtStartHour = (Calendar) getCalendar().clone();
+        selectedDayAtStartHour.set(Calendar.HOUR_OF_DAY, startHour);
+
+        Calendar dayAfterAtStartHour = (Calendar) selectedDayAtStartHour.clone();
+        dayAfterAtStartHour.add(Calendar.DAY_OF_MONTH, 1);
+
+        return (time.after(selectedDayAtStartHour) & time.before(dayAfterAtStartHour)); // NOSONAR java:S2178
+    }
+
+    public void showTimersForCurrentDate(List<TvhTimer> timers) {
+        clear();
+        for (TvhTimer timer : timers) {
+            if (Utilities.timerRunsOnDate(timer, calendar)) {
+                addTimer(timer);
+            }
+        }
+    }
+
+	@Override
+	public void timersChanged(TimersChangedEvent tce) {
+		switch (tce.getType()) {
+		case TimersChangedEvent.ALL:
+			List<TvhTimer> timers = tce.getTimers();
+			clear();
+			for (TvhTimer timer : timers) {
+				if (Utilities.timerRunsOnDate(timer, calendar)) {
+					addTimer(timer);
+				}
+			}
+			break;
+		case TimersChangedEvent.TIMER_ADDED:
+			TvhTimer timer = tce.getTimer();
+			if (Utilities.timerRunsOnDate(timer, calendar)) {
+				addTimer(timer);
+			}
+			break;
+		case TimersChangedEvent.TIMER_REMOVED:
+			timer = tce.getTimer();
+			if (Utilities.timerRunsOnDate(timer, calendar)) {
+				removeTimer(timer);
+			}
+			break;
+		default:
+		}
+
+	}
+
+	public void addTimelineListener(TimelineListener l) {
+        listeners.add(l);
+    }
+
+    public void removeTimelineListener(TimelineListener l) {
+        listeners.remove(l);
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension d = super.getPreferredSize();
+        d.height = (ROW_HEIGHT + PADDING) * getRowCount();
+        return d;
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        timelineBackground = UIManager.getColor("List.background");
+        lineColor = UIManager.getColor("Panel.background").darker();
+        rowBackground = UIManager.getColor("List.background");
+        rowBackgroundAlt = UIManager.getColor("Panel.background");
+        var textColor = UIManager.getColor("Label.foreground");
+        overlayTextColor = new Color(textColor.getRed(), textColor.getGreen(), textColor.getBlue(), 51); // text color with 20% opacity
+        midnightLineColor = textColor;
+    }
+}
